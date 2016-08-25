@@ -2,12 +2,18 @@
 A chat bot that keeps you connected to important political decisions
 
 
+## Execution
+
+1. Update the project configuration, `config.json`
+2. Check and install the requirements by running reqs.sh
+3. Set the environment vars and execute by running run.sh
+
 ## Development
 
-Setup:
+System requirements:
 
-1. Acquire appropriate `config.json` file
-2. `source setup.sh`
+* Unix-like environment
+* Python 3
 
 How to run static analysis: `pylint -E $(find . -type f -name "*.py")`
 
