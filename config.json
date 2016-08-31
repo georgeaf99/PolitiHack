@@ -1,5 +1,6 @@
 {
     "google": {
+        "is_testing": true,
         "api_key": null
     }, 
     "api_host": {
@@ -7,14 +8,17 @@
         "name": "localhost"
     }, 
     "twilio": {
+        "is_testing": true,
         "account_sid": null, 
         "auth_token": null
     }, 
     "dynamodb": {
+        "is_testing": true,
         "access_key": null, 
         "secret_key": null
     }, 
     "sunlight": {
+        "is_testing": true,
         "api_key": null
     }
 }
