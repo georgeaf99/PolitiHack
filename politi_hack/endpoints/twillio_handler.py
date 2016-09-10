@@ -12,6 +12,14 @@ def handle_sms():
     customer_phone_number = request.values["From"]
     text_message_body = request.values["Body"]
 
-    # Retrieve the customer from DB and send it over to event handler
-    customer = Customer.load_or_create(customer_phone_number)
+    # Retrieve the customer from the DB or create a new one
+    customer = Customer.get_customer_by_phone_number(customer_phone_number)
+    if not customer:
+        customer = Customer.create_new({
+            CFields.PHONE_NUMBER: customer_phone_number,
+        })
+
+        # Save the customer to the DB
+        customer.create()
+
     messaging.on_message_recieve(customer, text_message_body)
