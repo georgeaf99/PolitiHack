@@ -75,7 +75,7 @@ class Model:
                 # Now it is safe to set the range key if there is one
                 full_key[cls.RANGE_KEY] = range_key
 
-            full_key[cls.KEY] = key
+            full_key[cls.KEY] = primary_key
             item = cls(cls.TABLE.get_item(consistent=consistent, **full_key))
 
             # Migrate the item forward if it is on an old version
@@ -208,25 +208,41 @@ class Customer(Model):
     # Initialize the migration handlers
     HANDLERS = version.MigrationHandlers(VERSION)
 
+    # Indexes
+    PHONE_NUMBER_INDEX = "phone_nubmer-index"
+
     def __init__(self, item):
         super().__init__(item)
 
-    @staticmethod
-    def create_new(attributes={}):
+    @classmethod
+    def create_new(cls, attributes={}):
         # Default Values
         attributes[CFields.UUID] = common.get_uuid()
         attributes[CFields.VERSION] = Customer.VERSION
 
-        return Model.load_from_data(Customer, attributes)
+        return cls.load_from_data(attributes)
+
+    @classmethod
+    def get_customer_by_phone_number(cls, phone_number):
+        query_result = common.convert_query(cls,
+            customers.query_count(
+                index=cls.PHONE_NUMBER_INDEX,
+                phone_number__eq=phone_number,
+            )
+        )
+
+        # Sanity check that should never actually happen
+        if len(query_result) > 1:
+            raise Exception("Invalid state: database contains multiple customers")
+
+        return query_result[0] if len(query_result) == 1 else None
 
     def is_valid(self):
         if not self.MANDATORY_KEYS <= set(self.get_data()):
             return False
 
-        # Check to that there is only one customer with this phone_number
-        return customers.query_count(
-            index="{0}-index".format(self[CFields.PHONE_NUMBER]),
-            phone_number__eq=self[CFields.PHONE_NUMBER]) == 0
+        # Check to that there is no existing customer with this phone_number
+        return self.get_customer_by_phone_number(self[CFields.PHONE_NUMBER] is None)
 
 
 class VFields:
@@ -254,12 +270,12 @@ class Votes(Model):
     def __init__(self, item):
         super().__init__(item)
 
-    @staticmethod
-    def create_new(attributes={}):
+    @classmethod
+    def create_new(cls, attributes={}):
         # Default Values
         attributes[VFields.VERSION] = Votes.VERSION
 
-        return Model.load_from_data(Votes, attributes)
+        return cls.load_from_data(attributes)
 
     def is_valid(self):
         return self.MANDATORY_KEYS <= set(self.get_data())
