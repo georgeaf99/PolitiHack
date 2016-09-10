@@ -33,7 +33,6 @@ votes           = dynamo_table.Table(TableNames.VOTES,           connection=serv
 # Use boolean for the tables
 customers.use_boolean()
 votes.use_boolean()
-customer_states.use_boolean()
 
 
 # Base class for all object models
@@ -150,7 +149,7 @@ class Model:
 
     def create(self):
         # Don't allow empty keys to be saved
-        if any([val == "" for val in self.get_data().values()]):
+        if any((val == "" for val in self.get_data().values())):
             raise PolitiHackException(Errors.INVALID_DATA_PRESENT)
 
         if self.is_valid():
@@ -160,6 +159,27 @@ class Model:
 
     def delete(self):
         return self.item.delete()
+
+    @classmethod
+    def load_or_create(cls, primary_key, range_key=None, consistent=True):
+        """Load the item from the DB or create a new one if none was found"""
+        try:
+            return cls.load_from_db(primary_key, range_key=range_key, consistent=consistent)
+        except PolitiHackException as e:
+            # If the error was not a not found exception, then it should be escalated
+            if not e.error_type == cls.ITEM_NOT_FOUND_EX:
+                raise e
+
+        # Create a new item since none existed previously
+        attributes = {
+            cls.KEY: primary_key,
+        }
+
+        # Add a range key if one is present
+        if range_key is not None:
+            attributes[cls.RANGE_KEY] = range_key
+
+        return cls.create_new(attributes)
 
 
 class CFields:

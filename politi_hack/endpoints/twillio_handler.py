@@ -13,5 +13,5 @@ def handle_sms():
     text_message_body = request.values["Body"]
 
     # Retrieve the customer from DB and send it over to event handler
-    customer = Customer.load_from_db(customer_phone_number)
+    customer = Customer.load_or_create(customer_phone_number)
     messaging.on_message_recieve(customer, text_message_body)
