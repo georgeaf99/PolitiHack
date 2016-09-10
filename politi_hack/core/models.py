@@ -188,7 +188,7 @@ class Customer(Model):
     HANDLERS = version.MigrationHandlers(VERSION)
 
     # Indexes
-    PHONE_NUMBER_INDEX = "phone_nubmer-index"
+    PHONE_NUMBER_INDEX = "phone_number-index"
 
     def __init__(self, item):
         super().__init__(item)
