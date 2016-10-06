@@ -5,6 +5,8 @@ import time
 
 import jsonpickle
 
+from flask import request
+
 ##########
 # Errors #
 ##########
@@ -24,7 +26,7 @@ class Errors():
     VOTE_ALREADY_EXISTS           = ErrorType(6, "The specified vote already exists")
     CUSTOMER_STATE_DOES_NOT_EXIST = ErrorType(7, "The specified customer state does not exist")
     CUSTOMER_STATE_ALREADY_EXIST  = ErrorType(8, "The specified customer state already exists")
-    INVALID_DATA_PRESENT          = ErrorType(7, "The request contained inconsistent or superfluous data")
+    INVALID_DATA_PRESENT          = ErrorType(7, "The request contained invalid, inconsistent, or superfluous data")
     INVALID_TOKEN                 = ErrorType(8, "The authentication token is not valid")
     PERMISSION_DENIED             = ErrorType(9, "You do not have the access rights for that resource")
     CONSISTENCY_ERROR             = ErrorType(10, "The request could not be completed due to a consistency issue")
@@ -93,3 +95,31 @@ def get_current_timestamp():
 
 def get_uuid():
     return str(uuid.uuid4())
+
+##########################
+# Flask Helper Functions #
+##########################
+
+def enforce_request_json_schema(schema, no_extra=False):
+    """Decorator that throws an exception if the request data doesn't match the given schema
+
+    @param schema A one level deep dictionary that maps keys to types
+    @param no_extra A flag which asserts that the request data had no superflous keys
+    """
+    def validate_data(data):
+        if no_extra and data.keys() > schema.keys():
+            return False
+
+        check_type = lambda key: isinstance(data[key], schema[key])
+        return all(map(check_type, schema.keys()))
+
+    def wraps(f):
+        def decorated(*args, **kwargs):
+            data = jsonpickle.decode(request.data.decode("utf-8"))
+            if not validate_data(data):
+                raise PolitiHackException(Errors.INVALID_DATA_PRESENT)
+
+            return f(*args, **kwargs)
+
+        return decorated
+    return wraps

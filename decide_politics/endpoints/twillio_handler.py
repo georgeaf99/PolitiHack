@@ -1,9 +1,11 @@
-from politi_hack.flask import app
+from decide_politics.flask import app
 
 from flask import request
+import jsonpickle
 
-from politi_hack.core.models import Customer
-import politi_hack.logic.messaging as messaging
+from decide_politics.core.models import CFields
+from decide_politics.core.models import Customer
+import decide_politics.logic.messaging as messaging
 
 
 @app.route('/sms/handle_sms', methods=["POST"])
@@ -23,3 +25,7 @@ def handle_sms():
         customer.create()
 
     messaging.on_message_recieve(customer, text_message_body)
+
+    return jsonpickle.encode(dict(
+        success=True
+    ))
