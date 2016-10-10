@@ -34,6 +34,7 @@ class Errors():
     INVALID_PHONE_NUMBER          = ErrorType(13, "The phone number is invalid")
     UNSUPORTED_VERSION            = ErrorType(14, "The specified version is no longer supported")
     STALE_API_VERSION             = ErrorType(15, "The API is not up to date with the latest version")
+    MISSING_DATA                  = ErrorType(16, "The given data is missing necessary keys")
 
 
 def error_to_json(error):
