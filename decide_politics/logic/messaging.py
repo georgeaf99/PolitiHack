@@ -10,5 +10,5 @@ def on_message_recieve(customer, message_body):
     if message_body == "TEST":
         service.twilio.send_msg(
             customer[CFields.PHONE_NUMBER],
-            "WELCOME TO POLITIHACK!",
+            "WELCOME TO DECIDE POLITICS!",
         )

@@ -8,6 +8,20 @@ import shared.common as common
 from decide_politics.core.models import Customer
 
 
+@app.route('/web/create_new_customer', methods=["POST"])
+def create_new_customer():
+    """Creates a new customer from the given data
+
+    @data The attributes to be present in the customer item"""
+    data = jsonpickle.decode(request.data.decode("utf-8"))
+    customer = Customer.create_new(attributes=data)
+
+    customer.create()
+
+    return jsonpickle.encode(dict(
+        success=True
+    ))
+
 @app.route('/web/handle_message/<customer_uuid>', methods=["POST"])
 @common.enforce_request_json_schema(dict(
     message_body=str

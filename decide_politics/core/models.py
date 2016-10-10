@@ -23,8 +23,8 @@ from shared.common import Errors, PolitiHackException
 # Class of table names
 table_prefix = config.store["dynamodb"]["table_prefix"]
 class TableNames:
-    CUSTOMERS       = table_prefix + "PolitiHack_Customers"
-    VOTES           = table_prefix + "PolitiHack_Votes"
+    CUSTOMERS       = table_prefix + "DecidePolitics_Customers"
+    VOTES           = table_prefix + "DecidePolitics_Votes"
 
 # Tables
 customers       = dynamo_table.Table(TableNames.CUSTOMERS,       connection=service.dynamodb)
@@ -142,23 +142,23 @@ class Model:
         elif any((val == "" for val in self.get_data().values())):
             raise PolitiHackException(Errors.INVALID_DATA_PRESENT)
 
-        try:
-            return self.item.partial_save()
-        except dynamo_exceptions.ConditionalCheckFailedException:
-            return False
+        if not self.item.partial_save():
+            raise PolitiHackException(Errors.CONSISTENCY_ERROR)
 
     def create(self):
         # Don't allow empty keys to be saved
         if any((val == "" for val in self.get_data().values())):
             raise PolitiHackException(Errors.INVALID_DATA_PRESENT)
 
-        if self.is_valid():
-            return self.item.save()
-        else:
-            return False
+        # Checks to make sure that the given model is valid
+        self.check_validity()
+
+        if not self.item.save():
+            raise PolitiHackException(Errors.CONSISTENCY_ERROR)
 
     def delete(self):
-        return self.item.delete()
+        if not self.item.delete():
+            raise PolitiHackException(ErrorType.CONSISTENCY_ERROR)
 
 
 class CFields:
@@ -187,7 +187,7 @@ class Customer(Model):
     # Initialize the migration handlers
     HANDLERS = version.MigrationHandlers(VERSION)
 
-    # Indexes
+    # Indeces
     PHONE_NUMBER_INDEX = "phone_number-index"
 
     def __init__(self, item):
@@ -203,12 +203,12 @@ class Customer(Model):
 
     @classmethod
     def get_customer_by_phone_number(cls, phone_number):
-        query_result = common.convert_query(cls,
-            customers.query_count(
+        query_result = list(common.convert_query(cls,
+            customers.query(
                 index=cls.PHONE_NUMBER_INDEX,
                 phone_number__eq=phone_number,
             )
-        )
+        ))
 
         # Sanity check that should never actually happen
         if len(query_result) > 1:
@@ -216,12 +216,13 @@ class Customer(Model):
 
         return query_result[0] if len(query_result) == 1 else None
 
-    def is_valid(self):
+    def check_validity(self):
         if not self.MANDATORY_KEYS <= set(self.get_data()):
-            return False
+            raise PolitiHackException(Errors.MISSING_DATA)
 
         # Check to that there is no existing customer with this phone_number
-        return self.get_customer_by_phone_number(self[CFields.PHONE_NUMBER] is None)
+        if self.get_customer_by_phone_number(self[CFields.PHONE_NUMBER]) is not None:
+            raise PolitiHackException(Errors.CUSTOMER_ALREADY_EXISTS)
 
 
 class VFields:
@@ -256,5 +257,6 @@ class Votes(Model):
 
         return cls.load_from_data(attributes)
 
-    def is_valid(self):
-        return self.MANDATORY_KEYS <= set(self.get_data())
+    def check_validity(self):
+        if self.MANDATORY_KEYS <= set(self.get_data()):
+            raise PolitiHackException(Errors.MISSING_DATA)
